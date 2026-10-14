@@ -2,63 +2,56 @@
 #include <stddef.h>
 #include "align.h"
 #include "alloc.h"
-#include "config_arena_alloc.h"
+#include "config_alloc.h"
 
-static char heap_array[HEAP_MAX_SIZE];
+static char heap[HEAP_SIZE] __attribute__((aligned(ALIGNMENT)));
 
 static struct {
-        void *heap_array_beginning;
-        void *heap_cursor;
-        void *heap_array_virtual_end;
-        uint32_t heap_virtual_total_size;
-        void *heap_array_true_end;
-} heap_info = {0};
+        void *beg;
+        void *cursor;
+        void *virt_end;
+        size_t virt_tot_size;
+        void *true_end;
+} arena = {0};
 
-status_t init_arena_alloc(const uint32_t size_requested)
+void arena_init(size_t size)
 {
-        status_t status = STATUS_ENTRY;
+        arena.beg           = heap;
+        arena.cursor        = heap;
+        arena.true_end      = (void *)&heap[HEAP_SIZE - 1U];
+        arena.virt_end      = (void *)&heap[size - 1U];
+        arena.virt_tot_size = size;
+}
 
-        if (HEAP_MAX_SIZE < size_requested || 
-            0 == size_requested) {
-                status = STATUS_INVALID;
+status_t arena_create(const size_t size)
+{
+        status_t status = aFAILED;
+
+        if (0U == size || HEAP_SIZE < size) {
+                status = aFAILED;
         } else {
-                status = STATUS_OK;
-                heap_info.heap_array_beginning = 
-                        align_towards_higher_address((void *)heap_array),
-                heap_info.heap_cursor          = 
-                        align_towards_higher_address((void *)heap_array),
-                heap_info.heap_array_true_end  = 
-                        align_towards_lower_address((void *)(char *)heap_array + 
-                                                    (HEAP_MAX_SIZE - 1)),
-                heap_info.heap_array_virtual_end = 
-                        (void *)((char *)heap_array + (size_requested - 1));
-                heap_info.heap_virtual_total_size = size_requested;
+                status = aSUCCESS;
+                arena_init(size);
         }
 
         return status;
 }
 
-void *arena_alloc(const uint32_t size_required)
+void *arena_alloc(const size_t size)
 {
-        status_t status = STATUS_ENTRY;
+        void *cursor = arena.cursor;
+        void *ncursor = (void *) ((char *)cursor + size - 1U);
 
-        void *cursor = heap_info.heap_cursor;
-        void *new_cursor = (void *)((char *)cursor + size_required - 1);
-
-        if (0 == size_required ||
-            (uintptr_t)(new_cursor) > (uintptr_t)heap_info.heap_array_virtual_end) {
-                status = STATUS_INVALID;
+        if (0U == size || (uintptr_t)ncursor > (uintptr_t)arena.virt_end) {
                 cursor = NULL;
         } else {
-                status = STATUS_OK;
-                heap_info.heap_cursor = align_towards_higher_address( 
-                                        (void *)((uintptr_t)new_cursor + 1) );
+                arena.cursor = align_up((void *) ((uintptr_t)ncursor + 1U));
         }
 
         return cursor;
 }
 
-void arena_free_all(void *p)
+void arena_reset(void)
 {
-        heap_info.heap_cursor = heap_info.heap_array_beginning;
+        arena.cursor = arena.beg;
 }

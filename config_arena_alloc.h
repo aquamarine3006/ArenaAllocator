@@ -1,8 +1,0 @@
-#ifndef CONFIG_ARENA_ALLOC_H
-#define CONFIG_ARENA_ALLOC_H
-
-#define HEAP_MAX_SIZE 1024
-#define ALIGNMENT_IN_EXPONENTOF_2 3
-
-#endif
-

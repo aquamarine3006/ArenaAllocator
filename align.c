@@ -1,27 +1,26 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "align.h"
-#include "config_arena_alloc.h"
+#include "config_alloc.h"
 
-extern inline void *align_towards_lower_address(void *p);
-extern inline void *align_towards_higher_address(void *p);
+extern inline void *align_down(void *p);
+extern inline void *align_up(void *p);
 
-inline void *align_towards_lower_address(void *p)
+inline void *align_down(void *p)
 {
-        return (void *)( ((uintptr_t)p >> ALIGNMENT_IN_EXPONENTOF_2) << ALIGNMENT_IN_EXPONENTOF_2 );
+        return (void *) (((uintptr_t)p >> ALIGN_LOG2) << ALIGN_LOG2);
 }
 
-inline void *align_towards_higher_address(void *p)
+inline void *align_up(void *p)
 {
-        void *aligned_towards_higher_addr = NULL;
-        uintptr_t aligned_towards_lower_addr = (uintptr_t)align_towards_lower_address(p);
+        void *aligned_up = NULL;
+        uintptr_t aligned_down = (uintptr_t)align_down(p);
 
-        if (aligned_towards_lower_addr == (uintptr_t)p) {
-                aligned_towards_higher_addr = (void *)aligned_towards_lower_addr;
+        if (aligned_down == (uintptr_t)p) {
+                aligned_up = (void *)aligned_down;
         } else {
-                aligned_towards_higher_addr = (void *)( aligned_towards_lower_addr + 
-                                                (1 << ALIGNMENT_IN_EXPONENTOF_2) );
+                aligned_up = (void *)(aligned_down + (1 << ALIGN_LOG2));
         }
 
-        return aligned_towards_higher_addr;
+        return aligned_up;
 }

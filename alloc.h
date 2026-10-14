@@ -2,15 +2,16 @@
 #define ALLOC_H
 
 #include <stdint.h>
+#include <stddef.h>
 
 typedef enum {
-        STATUS_ENTRY,
-        STATUS_INVALID,
-        STATUS_OK,
+        aFAILED,
+        aSUCCESS,
 } status_t;
 
-status_t init_arena_alloc(const uint32_t size_requested);
-void *arena_alloc(const uint32_t size_required);
-void arena_free_all(void *p);
+void arena_init(size_t);
+status_t arena_create(const size_t);
+void *arena_alloc(const size_t);
+void arena_reset(void);
 
 #endif
