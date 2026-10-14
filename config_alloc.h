@@ -1,0 +1,9 @@
+#ifndef CONFIG_ARENA_ALLOC_H
+#define CONFIG_ARENA_ALLOC_H
+
+#define HEAP_SIZE 1024U
+#define ALIGN_LOG2 3U
+#define ALIGNMENT (1 << ALIGN_LOG2)
+
+#endif
+

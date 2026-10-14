@@ -12,14 +12,23 @@ static struct {
         void *virt_end;
         size_t virt_tot_size;
         void *true_end;
-} arena = {0};
+} arena = { 
+        .beg      = (void *)heap,
+        .cursor   = (void *)heap,
+        .true_end = (void *)&heap[HEAP_SIZE - 1U],
+};
 
-void arena_init(size_t size)
+static enum {
+        DESTROYED_STATE,
+        CREATED_STATE,
+} arena_status = DESTROYED_STATE;
+
+static void arena_init(size_t size)
 {
-        arena.beg           = heap;
-        arena.cursor        = heap;
-        arena.true_end      = (void *)&heap[HEAP_SIZE - 1U];
-        arena.virt_end      = (void *)&heap[size - 1U];
+        void *arena_end           = (void *)&heap[size - 1U];
+
+        arena.cursor        = arena.beg;
+        arena.virt_end      = arena_end;
         arena.virt_tot_size = size;
 }
 
@@ -32,6 +41,7 @@ status_t arena_create(const size_t size)
         } else {
                 status = aSUCCESS;
                 arena_init(size);
+                arena_status = CREATED_STATE;
         }
 
         return status;
@@ -39,16 +49,26 @@ status_t arena_create(const size_t size)
 
 void *arena_alloc(const size_t size)
 {
-        void *cursor = arena.cursor;
-        void *ncursor = (void *) ((char *)cursor + size - 1U);
+        void *cur        = arena.cursor;
+        if (arena_status == CREATED_STATE) {
+                void *mem_end     = arena.virt_end;
+                void *aligned_end = align_down((void *)((uintptr_t)mem_end + 1));
 
-        if (0U == size || (uintptr_t)ncursor > (uintptr_t)arena.virt_end) {
-                cursor = NULL;
+                size_t available  = (uintptr_t)aligned_end - (uintptr_t)cur ;
+
+                if (0U == size || available < size) {
+                        cur = NULL;
+                } else {
+                        void *unaligned_next = (void *) &((char *)cur)[size - 1U];
+                        void *next = align_up((void *) ((uintptr_t)unaligned_next + 1U));
+
+                        arena.cursor = next;
+                }
         } else {
-                arena.cursor = align_up((void *) ((uintptr_t)ncursor + 1U));
+                cur = NULL;
         }
 
-        return cursor;
+        return cur;
 }
 
 void arena_reset(void)
