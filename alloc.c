@@ -75,3 +75,48 @@ void arena_reset(void)
 {
         arena.cursor = arena.beg;
 }
+
+void *arena_get_cursor(void)
+{
+        return arena.cursor;
+}
+
+size_t arena_used(void)
+{
+        return (size_t)((uintptr_t)arena.cursor - (uintptr_t)arena.beg);
+}
+
+size_t arena_available(void)
+{
+        return (size_t)((uintptr_t)arena.virt_end - (uintptr_t)arena.cursor + 1);
+}
+
+void *arena_alloc_zero(size_t size)
+{
+        void *old_cur = arena.cursor;
+        void *ret = NULL;
+
+        void *ptr = arena_alloc(size);
+
+        if (ptr != NULL) {
+                ret = ptr;
+                for(size_t i = 0; i < size; ++i) {
+                        //zero-out (char *)old_cur[0] to (char *)old_cur[size - 1]
+                        ((char *)old_cur)[i] = (char)0; 
+                }
+        }
+
+        return ret;
+}
+
+status_t arena_rollback(size_t offset)
+{
+        status_t status = aFAILED;
+        void *new_cur = align_up((void *)((char *)arena.cursor - offset));
+        if (!((uintptr_t)arena.beg > (uintptr_t)new_cur)) {
+                status = aSUCCESS;
+                arena.cursor = new_cur;
+        }
+
+        return status;
+}
